@@ -1,0 +1,55 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_KEY: ${APP_KEY:-base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}
+      PHONE_ALLOWED_COUNTRY_CODES: ${PHONE_ALLOWED_COUNTRY_CODES:-57}
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: cancelacion_series
+      DB_USERNAME: cancelacion_series
+      DB_PASSWORD: local_dev_password
+      SESSION_DRIVER: database
+      SESSION_LIFETIME: 30
+      SESSION_IDLE_TIMEOUT_MINUTES: 30
+      SESSION_ABSOLUTE_LIFETIME_MINUTES: 480
+      CACHE_STORE: database
+      OTP_MAC_KEY: ${OTP_MAC_KEY:-local-development-otp-mac-key-not-secret}
+      SMS_DRIVER: ${SMS_DRIVER:-fake}
+      SMS_PROVIDER_ENDPOINT: ${SMS_PROVIDER_ENDPOINT:-}
+      SMS_PROVIDER_AUTHORIZATION: ${SMS_PROVIDER_AUTHORIZATION:-}
+      SMS_PROVIDER_FROM: ${SMS_PROVIDER_FROM:-InfoSMS}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: php artisan serve --host=0.0.0.0 --port=8000
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: cancelacion_series
+      MYSQL_USER: cancelacion_series
+      MYSQL_PASSWORD: local_dev_password
+      MYSQL_ROOT_PASSWORD: local_dev_root_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  mysql-data:

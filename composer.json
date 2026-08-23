@@ -1,0 +1,53 @@
+{
+    "name": "assisprex/cancelacion-series",
+    "type": "project",
+    "description": "Portal de Cancelaciones Series Seguros foundation.",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.3",
+        "laravel/framework": "^13.0",
+        "openspout/openspout": "^4.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.30",
+        "phpstan/phpstan": "^2.2",
+        "phpunit/phpunit": "^12.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "analyse": "phpstan analyse",
+        "format": "pint",
+        "test": "@php artisan test"
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": []
+        }
+    },
+    "config": {
+        "allow-plugins": {},
+        "optimize-autoloader": true,
+        "platform": {
+            "php": "8.3.0"
+        },
+        "preferred-install": "dist",
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
