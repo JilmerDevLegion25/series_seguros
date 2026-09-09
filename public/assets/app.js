@@ -108,6 +108,29 @@
             return;
         }
 
+        var loginPanelToggle = closest(event.target, '[data-login-panel-toggle]');
+        if (loginPanelToggle) {
+            var loginPanel = getControlledPanel(loginPanelToggle, '[data-login-panel]');
+            if (loginPanel) {
+                var willOpenLoginPanel = loginPanel.hidden;
+                setPanelOpen(loginPanelToggle, loginPanel, willOpenLoginPanel);
+
+                document.querySelectorAll('[data-login-panel-toggle]').forEach(function (toggle) {
+                    toggle.setAttribute('aria-expanded', willOpenLoginPanel ? 'true' : 'false');
+                });
+
+                if (willOpenLoginPanel) {
+                    window.setTimeout(function () {
+                        var firstLoginField = loginPanel.querySelector('input');
+                        if (firstLoginField) {
+                            firstLoginField.focus();
+                        }
+                    }, 1660);
+                }
+            }
+            return;
+        }
+
         if (closest(event.target, '[data-public-cancellation-backdrop]') || closest(event.target, '[data-public-cancellation-cancel]')) {
             closePublicCancellationModal();
             return;
@@ -242,6 +265,19 @@
         pendingPublicCancellationHref = null;
     }
 
+    function closeLoginPanel() {
+        var loginPanel = document.querySelector('[data-login-panel]');
+        if (!loginPanel || loginPanel.hidden) {
+            return;
+        }
+
+        loginPanel.hidden = true;
+        loginPanel.classList.remove('is-open');
+        document.querySelectorAll('[data-login-panel-toggle]').forEach(function (toggle) {
+            toggle.setAttribute('aria-expanded', 'false');
+        });
+    }
+
     function closeModal() {
         if (modal) {
             modal.hidden = true;
@@ -364,6 +400,7 @@
         if (event.key === 'Escape') {
             closeModal();
             closePublicCancellationModal();
+            closeLoginPanel();
             setDrawer(false);
         }
     });

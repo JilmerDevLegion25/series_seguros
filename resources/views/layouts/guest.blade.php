@@ -16,9 +16,9 @@
                 <img class="brand-logo" src="{{ asset('img/series-logo-sinbg.png') }}" alt="">
             </span>
             <div>
-                <p class="guest-kicker">Series Seguros</p>
-                <p class="guest-title">Portal de Cancelaciones</p>
-                <p class="guest-copy">Gestiona solicitudes Moto y Credito con validacion OTP, trazabilidad y respuesta operacional segura.</p>
+                <p class="guest-kicker">Cancelacion Series</p>
+                <p class="guest-title">Portal de solicitudes</p>
+                <p class="guest-copy">Gestiona tus solicitudes de cancelacion de seguros de forma simple y segura.</p>
             </div>
         </section>
 
