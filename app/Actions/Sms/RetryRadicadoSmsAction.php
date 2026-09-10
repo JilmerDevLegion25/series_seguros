@@ -103,6 +103,10 @@ final readonly class RetryRadicadoSmsAction
      */
     private function reserveMotoAttempt(MotoCancellation $moto, User $actor, ?string $requestId): SmsAttempt
     {
+        if ($moto->radicado === null) {
+            throw SmsRetryException::unavailable();
+        }
+
         $this->assertRetryQuota(
             SmsAttempt::query()->where('moto_cancellation_id', $moto->id),
         );
@@ -119,7 +123,7 @@ final readonly class RetryRadicadoSmsAction
             actor: $actor,
             requestId: $requestId,
             type: CancellationType::MOTO,
-            radicado: $moto->radicado,
+            radicado: (int) $moto->radicado,
             smsAttempt: $attempt,
             moto: $moto,
         );

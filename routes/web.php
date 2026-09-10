@@ -141,6 +141,9 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function (): vo
             Route::post('/{moto}/reassign', [AdvisorMotoCancellationController::class, 'storeReassignment'])
                 ->middleware('can:cancellations.reassign')
                 ->name('reassign.store');
+            Route::post('/{moto}/radicado', [AdvisorMotoCancellationController::class, 'generateRadicado'])
+                ->middleware('can:cancellations.update')
+                ->name('radicado.generate');
             Route::post('/{moto}/sms/retry', [RadicadoSmsController::class, 'retryMoto'])
                 ->middleware('can:radicado_sms.retry')
                 ->name('sms.retry');

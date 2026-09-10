@@ -33,6 +33,7 @@ final readonly class HistoryMetadataFormatter
     {
         return match ($type) {
             ActivityType::CREATED => 'Creada',
+            ActivityType::RADICADO_GENERATED => 'Radicado generado',
             ActivityType::UPDATED => 'Actualizada',
             ActivityType::OWNER_REASSIGNED => 'Advisor reasignado',
             ActivityType::RESPONSE_OBTAINED => 'Respuesta obtenida',
@@ -43,6 +44,7 @@ final readonly class HistoryMetadataFormatter
     {
         return match ($eventType) {
             AuditEventType::CANCELLATION_CREATED => 'Solicitud creada',
+            AuditEventType::RADICADO_GENERATED => 'Radicado generado',
             AuditEventType::CANCELLATION_UPDATED => 'Solicitud actualizada',
             AuditEventType::OWNER_REASSIGNED => 'Advisor reasignado',
             AuditEventType::RADICADO_SMS_RETRY_REQUESTED => 'Reintento SMS radicado',

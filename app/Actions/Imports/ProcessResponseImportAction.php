@@ -310,6 +310,12 @@ final class ProcessResponseImportAction
                 return;
             }
 
+            if ($moto->radicado === null || $moto->status === CancellationStatus::PENDIENTE_RADICACION) {
+                $this->recordRejectedRow($batch, $row, ImportRowReason::RADICADO_NOT_AVAILABLE, moto: $moto);
+
+                return;
+            }
+
             if ($moto->status === CancellationStatus::RESPUESTA_OBTENIDA || $moto->response()->exists()) {
                 $this->recordRejectedRow($batch, $row, ImportRowReason::ALREADY_RESPONDED, moto: $moto);
 
@@ -419,11 +425,13 @@ final class ProcessResponseImportAction
         MotoCancellation $moto,
         CancellationResponse $response,
     ): void {
+        $radicado = (int) $moto->radicado;
+
         Activity::query()->create([
             'moto_cancellation_id' => $moto->id,
             'actor_user_id' => $actor->id,
             'type' => ActivityType::RESPONSE_OBTAINED,
-            'metadata' => $this->successMetadata(CancellationType::MOTO, $moto->radicado, $moto->version, $response, $batch, $row),
+            'metadata' => $this->successMetadata(CancellationType::MOTO, $radicado, $moto->version, $response, $batch, $row),
         ]);
 
         Audit::query()->create([
@@ -431,7 +439,7 @@ final class ProcessResponseImportAction
             'actor_user_id' => $actor->id,
             'event_type' => AuditEventType::RESPONSE_OBTAINED,
             'request_id' => $requestId,
-            'metadata' => $this->successMetadata(CancellationType::MOTO, $moto->radicado, $moto->version, $response, $batch, $row),
+            'metadata' => $this->successMetadata(CancellationType::MOTO, $radicado, $moto->version, $response, $batch, $row),
         ]);
 
         $this->recordSuccessfulRow($batch, $row, moto: $moto, response: $response);

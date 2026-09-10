@@ -70,10 +70,10 @@ final class UpdateMotoCancellationAction
             ? (bool) $target['is_credit_holder']
             : $moto->is_credit_holder;
 
-        // if ($isCreditHolder) {
-        //     $target['credit_owner_name'] = null;
-        //     $target['credit_owner_cedula'] = null;
-        // }
+        if ($isCreditHolder) {
+            $target['credit_owner_name'] = null;
+            $target['credit_owner_cedula'] = null;
+        }
 
         $creditOwnerName = array_key_exists('credit_owner_name', $target)
             ? $target['credit_owner_name']

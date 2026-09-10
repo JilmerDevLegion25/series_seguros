@@ -6,5 +6,10 @@
 @section('auth_card_class', 'auth-card-receipt')
 
 @section('content')
-    <x-public.success-confirmation product="Moto" :radicado="$moto->radicado" :already-completed="$alreadyCompleted" />
+    <x-public.success-confirmation
+        product="Moto"
+        :radicado="$moto->radicado"
+        :already-completed="$alreadyCompleted"
+        :pending-radicacion="$moto->status === \App\Enums\CancellationStatus::PENDIENTE_RADICACION"
+    />
 @endsection

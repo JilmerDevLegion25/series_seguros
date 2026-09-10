@@ -20,4 +20,9 @@ final class SmsRetryException extends RuntimeException
     {
         return new self('SMS_RETRY_COOLDOWN');
     }
+
+    public static function unavailable(): self
+    {
+        return new self('SMS_RETRY_UNAVAILABLE');
+    }
 }

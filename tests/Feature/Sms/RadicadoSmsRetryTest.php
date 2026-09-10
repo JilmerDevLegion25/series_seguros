@@ -73,6 +73,28 @@ final class RadicadoSmsRetryTest extends TestCase
         $this->assertSame(0, Activity::query()->count());
     }
 
+    public function test_moto_retry_is_blocked_before_radicado_exists(): void
+    {
+        $advisor = $this->makeAdvisor();
+        $owner = $this->makeClient('1000000099');
+        $moto = $this->makeMoto($owner, $advisor);
+        $moto->forceFill([
+            'radicado' => null,
+            'status' => CancellationStatus::PENDIENTE_RADICACION,
+        ])->save();
+        $this->grantAdvisor(PermissionKey::RADICADO_SMS_RETRY);
+        $this->actingAsReady($advisor);
+
+        $this->from(route('advisor.moto.edit', $moto))
+            ->post(route('advisor.moto.sms.retry', $moto), ['_token' => 'phase07-token'])
+            ->assertRedirect(route('advisor.moto.edit', $moto, absolute: false))
+            ->assertSessionHasErrors(['sms_retry']);
+
+        $this->assertSame(0, SmsAttempt::query()->where('moto_cancellation_id', $moto->id)->count());
+        $this->assertSame(0, Audit::query()->where('event_type', AuditEventType::RADICADO_SMS_RETRY_REQUESTED)->count());
+        $this->assertSame(0, Activity::query()->count());
+    }
+
     public function test_credit_retry_failure_is_sanitized_and_does_not_rollback_cancellation(): void
     {
         $advisor = $this->makeAdvisor();

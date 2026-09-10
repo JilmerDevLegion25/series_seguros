@@ -212,6 +212,35 @@ final class ResponseImportTest extends TestCase
         $this->assertSame('INVALID_HEADER', $batch->failure_reason);
     }
 
+    public function test_pending_moto_without_radicado_is_not_response_import_eligible(): void
+    {
+        $advisor = $this->makeAdvisor();
+        $moto = $this->makeMoto($this->makeClient('1000000099'), $advisor);
+        $moto->forceFill([
+            'radicado' => null,
+            'status' => CancellationStatus::PENDIENTE_RADICACION,
+        ])->save();
+        $this->grantAdvisor(PermissionKey::RESPONSES_IMPORT);
+        $this->actingAsReady($advisor);
+
+        $this->post(route('advisor.responses.import.store'), [
+            '_token' => 'phase08-token',
+            'type' => 'MOTO',
+            'file' => $this->xlsxUpload([
+                ['Radicado', 'Fecha cancelacion', 'Observaciones'],
+                [123456, now()->subDay()->toDateTimeImmutable(), 'No debe matchear'],
+            ]),
+        ])->assertOk()->assertSee('RADICADO_NOT_AVAILABLE');
+
+        $moto->refresh();
+
+        $this->assertNull($moto->radicado);
+        $this->assertSame(CancellationStatus::PENDIENTE_RADICACION, $moto->status);
+        $this->assertSame(1, $moto->version);
+        $this->assertSame(0, CancellationResponse::query()->where('moto_cancellation_id', $moto->id)->count());
+        $this->assertSame(1, ImportRowResult::query()->where('reason', ImportRowReason::RADICADO_NOT_AVAILABLE)->count());
+    }
+
     public function test_permission_and_upload_security_are_enforced(): void
     {
         $advisor = $this->makeAdvisor();

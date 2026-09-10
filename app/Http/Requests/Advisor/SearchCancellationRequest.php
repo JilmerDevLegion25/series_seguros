@@ -136,6 +136,7 @@ class SearchCancellationRequest extends FormRequest
     {
         return [
             CancellationStatus::EN_GESTION->value => 'En gestion',
+            CancellationStatus::PENDIENTE_RADICACION->value => 'Pendiente de radicacion',
             CancellationStatus::RESPUESTA_OBTENIDA->value => 'Respuesta obtenida',
         ];
     }

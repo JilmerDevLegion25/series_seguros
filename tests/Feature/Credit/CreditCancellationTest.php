@@ -337,7 +337,7 @@ final class CreditCancellationTest extends TestCase
         return [
             'holder_name' => 'Moto Client',
             'holder_cedula' => '1234567890',
-            'property_lien_adeinco' => '1',
+            'property_lien_adeinco' => '0',
             'plate' => 'ABC123',
             'holder_phone' => '3001234567',
             'holder_email' => 'moto@example.test',

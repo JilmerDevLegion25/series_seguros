@@ -303,16 +303,21 @@
                                 $retryRoute = $isMoto
                                     ? route('advisor.moto.sms.retry', $row->id)
                                     : route('advisor.credit.sms.retry', $row->id);
+                                $generateRadicadoRoute = $isMoto
+                                    ? route('advisor.moto.radicado.generate', $row->id)
+                                    : null;
                                 $activityRoute = $isMoto
                                     ? route('advisor.moto.activity', $row->id)
                                     : route('advisor.credit.activity', $row->id);
                                 $latestRadicadoSmsStatus = (string) ($row->latest_radicado_sms_status ?? '');
-                                $canRetryCurrentSms = $canRetrySms && in_array($latestRadicadoSmsStatus, [
+                                $canRetryCurrentSms = $canRetrySms && $row->radicado !== null && in_array($latestRadicadoSmsStatus, [
                                     \App\Enums\SmsAttemptStatus::FAILED->value,
                                     \App\Enums\SmsAttemptStatus::UNKNOWN->value,
                                 ], true);
                                 $isComplete = $row->status === \App\Enums\CancellationStatus::RESPUESTA_OBTENIDA->value;
-                                $progressPercent = $isComplete ? 100 : 50;
+                                $isPendingRadicacion = $row->status === \App\Enums\CancellationStatus::PENDIENTE_RADICACION->value;
+                                $progressPercent = $isComplete ? 100 : ($isPendingRadicacion ? 25 : 50);
+                                $canGenerateRadicado = $canUpdate && $isMoto && $row->radicado === null;
                             @endphp
                             <tr>
                                 <td>
@@ -321,7 +326,7 @@
                                         {{ $isMoto ? 'Moto' : 'Credit' }}
                                     </span>
                                 </td>
-                                <td><strong class="workspace-radicado">{{ $row->radicado }}</strong></td>
+                                <td><strong class="workspace-radicado">{{ $row->radicado ?? '-' }}</strong></td>
                                 <td>
                                     <span class="workspace-person">
                                         <strong>{{ $row->holder_name }}</strong>
@@ -350,6 +355,12 @@
                                             <a class="btn btn-outline btn-icon btn-sm" href="{{ $editRoute }}" title="Editar solicitud" aria-label="Editar solicitud">
                                                 <x-ui.icon name="edit" />
                                             </a>
+                                        @endif
+                                        @if ($canGenerateRadicado)
+                                            <form method="post" action="{{ $generateRadicadoRoute }}" data-loading data-confirm="Confirma que el proceso de validacion de la limitacion a la propiedad ya fue realizado.">
+                                                @csrf
+                                                <button class="btn btn-outline btn-sm" type="submit">Generar Radicado</button>
+                                            </form>
                                         @endif
                                         <!-- @if ($canRetryCurrentSms)
                                             <form method="post" action="{{ $retryRoute }}" data-loading data-confirm="Se registrara un nuevo intento SMS para el radicado actual.">
@@ -381,31 +392,43 @@
                         $retryRoute = $isMoto
                             ? route('advisor.moto.sms.retry', $row->id)
                             : route('advisor.credit.sms.retry', $row->id);
+                        $generateRadicadoRoute = $isMoto
+                            ? route('advisor.moto.radicado.generate', $row->id)
+                            : null;
                         $activityRoute = $isMoto
                             ? route('advisor.moto.activity', $row->id)
                             : route('advisor.credit.activity', $row->id);
                         $latestRadicadoSmsStatus = (string) ($row->latest_radicado_sms_status ?? '');
-                        $canRetryCurrentSms = $canRetrySms && in_array($latestRadicadoSmsStatus, [
+                        $canRetryCurrentSms = $canRetrySms && $row->radicado !== null && in_array($latestRadicadoSmsStatus, [
                             \App\Enums\SmsAttemptStatus::FAILED->value,
                             \App\Enums\SmsAttemptStatus::UNKNOWN->value,
                         ], true);
                         $isComplete = $row->status === \App\Enums\CancellationStatus::RESPUESTA_OBTENIDA->value;
+                        $isPendingRadicacion = $row->status === \App\Enums\CancellationStatus::PENDIENTE_RADICACION->value;
+                        $progressPercent = $isComplete ? 100 : ($isPendingRadicacion ? 25 : 50);
+                        $canGenerateRadicado = $canUpdate && $isMoto && $row->radicado === null;
                     @endphp
                     <article class="mobile-row-card">
                         <div>
-                            <strong>{{ $isMoto ? 'Moto' : 'Credit' }} {{ $row->radicado }}</strong>
+                            <strong>{{ $isMoto ? 'Moto' : 'Credit' }} {{ $row->radicado ?? '-' }}</strong>
                             <p class="muted">{{ $row->holder_name }}</p>
                         </div>
                         <x-ui.status-badge :status="$row->status" />
-                        <span class="workspace-progress {{ $isComplete ? 'is-complete' : 'is-mid' }}" aria-label="Progreso {{ $isComplete ? 100 : 50 }}%">
+                        <span class="workspace-progress {{ $isComplete ? 'is-complete' : 'is-mid' }}" aria-label="Progreso {{ $progressPercent }}%">
                             <span class="workspace-progress-track" aria-hidden="true"><span></span></span>
-                            <strong>{{ $isComplete ? 100 : 50 }}%</strong>
+                            <strong>{{ $progressPercent }}%</strong>
                         </span>
                         <div class="row-actions workspace-row-actions">
                             @if ($canUpdate)
                                 <a class="btn btn-outline btn-icon btn-sm" href="{{ $editRoute }}" title="Editar solicitud" aria-label="Editar solicitud">
                                     <x-ui.icon name="edit" />
                                 </a>
+                            @endif
+                            @if ($canGenerateRadicado)
+                                <form method="post" action="{{ $generateRadicadoRoute }}" data-loading data-confirm="Confirma que el proceso de validacion de la limitacion a la propiedad ya fue realizado.">
+                                    @csrf
+                                    <button class="btn btn-outline btn-sm" type="submit">Generar Radicado</button>
+                                </form>
                             @endif
                             <!-- @if ($canRetryCurrentSms)
                                 <form method="post" action="{{ $retryRoute }}" data-loading data-confirm="Se registrara un nuevo intento SMS para el radicado actual.">

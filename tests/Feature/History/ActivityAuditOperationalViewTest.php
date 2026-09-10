@@ -37,12 +37,13 @@ final class ActivityAuditOperationalViewTest extends TestCase
     public function test_activity_and_audit_catalogues_and_log_baseline_are_reconciled(): void
     {
         $this->assertSame(
-            ['CREATED', 'UPDATED', 'OWNER_REASSIGNED', 'RESPONSE_OBTAINED'],
+            ['CREATED', 'RADICADO_GENERATED', 'UPDATED', 'OWNER_REASSIGNED', 'RESPONSE_OBTAINED'],
             array_map(static fn (ActivityType $type): string => $type->value, ActivityType::cases()),
         );
         $this->assertSame(
             [
                 'CANCELLATION_CREATED',
+                'RADICADO_GENERATED',
                 'CANCELLATION_UPDATED',
                 'OWNER_REASSIGNED',
                 'RADICADO_SMS_RETRY_REQUESTED',

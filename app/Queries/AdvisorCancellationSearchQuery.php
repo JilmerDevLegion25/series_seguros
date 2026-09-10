@@ -87,6 +87,7 @@ final readonly class AdvisorCancellationSearchQuery
                 'moto_cancellations.holder_email',
                 'moto_cancellations.holder_phone',
                 'moto_cancellations.plate',
+                'moto_cancellations.property_lien_adeinco',
                 DB::raw('NULL as credit_number'),
                 'moto_cancellations.status',
                 'moto_cancellations.assigned_advisor_user_id',
@@ -128,6 +129,7 @@ final readonly class AdvisorCancellationSearchQuery
                 'credit_cancellations.holder_email',
                 'credit_cancellations.holder_phone',
                 DB::raw('NULL as plate'),
+                DB::raw('0 as property_lien_adeinco'),
                 'credit_cancellations.credit_number',
                 'credit_cancellations.status',
                 'credit_cancellations.assigned_advisor_user_id',
@@ -166,6 +168,7 @@ final readonly class AdvisorCancellationSearchQuery
             ->selectRaw('NULL as holder_email')
             ->selectRaw('NULL as holder_phone')
             ->selectRaw('NULL as plate')
+            ->selectRaw('NULL as property_lien_adeinco')
             ->selectRaw('NULL as credit_number')
             ->selectRaw('NULL as status')
             ->selectRaw('NULL as assigned_advisor_user_id')

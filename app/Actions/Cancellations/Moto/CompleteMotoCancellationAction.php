@@ -100,7 +100,12 @@ final readonly class CompleteMotoCancellationAction
                 phone: $data->holderPhone,
             ));
             $creator = $advisorCreator ?? $owner;
-            $radicado = $this->radicadoAllocator->allocate(CancellationType::MOTO);
+            $radicado = $data->propertyLienAdeinco
+                ? null
+                : $this->radicadoAllocator->allocate(CancellationType::MOTO);
+            $status = $data->propertyLienAdeinco
+                ? CancellationStatus::PENDIENTE_RADICACION
+                : CancellationStatus::EN_GESTION;
 
             $moto = MotoCancellation::query()->create([
                 'otp_challenge_id' => $challenge->id,
@@ -109,7 +114,7 @@ final readonly class CompleteMotoCancellationAction
                 'created_by_user_id' => $creator->id,
                 'assigned_advisor_user_id' => $advisorCreator?->id,
                 'origin' => $origin,
-                'status' => CancellationStatus::EN_GESTION,
+                'status' => $status,
                 'version' => 1,
                 'holder_name' => $data->holderName,
                 'holder_cedula' => $data->holderCedula,
@@ -149,12 +154,14 @@ final readonly class CompleteMotoCancellationAction
                 ],
             ]);
 
-            $smsAttempt = SmsAttempt::query()->create([
-                'moto_cancellation_id' => $moto->id,
-                'purpose' => SmsPurpose::RADICADO,
-                'status' => SmsAttemptStatus::PENDING,
-                'destination' => $moto->holder_phone,
-            ]);
+            $smsAttempt = $data->propertyLienAdeinco
+                ? null
+                : SmsAttempt::query()->create([
+                    'moto_cancellation_id' => $moto->id,
+                    'purpose' => SmsPurpose::RADICADO,
+                    'status' => SmsAttemptStatus::PENDING,
+                    'destination' => $moto->holder_phone,
+                ]);
 
             $challenge->forceFill([
                 'consumed_at' => now(),

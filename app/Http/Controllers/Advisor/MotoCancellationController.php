@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Advisor;
 
 use App\Actions\Cancellations\Moto\CompleteMotoCancellationAction;
+use App\Actions\Cancellations\Moto\GenerateMotoRadicadoAction;
 use App\Actions\Cancellations\Moto\ReassignMotoCancellationAction;
 use App\Actions\Cancellations\Moto\StartMotoCancellationOtpAction;
 use App\Actions\Cancellations\Moto\UpdateMotoCancellationAction;
@@ -27,6 +28,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 final class MotoCancellationController
 {
@@ -109,6 +111,29 @@ final class MotoCancellationController
     /**
      * @throws AuthorizationException
      */
+    public function generateRadicado(
+        Request $request,
+        MotoCancellation $moto,
+        GenerateMotoRadicadoAction $generateMotoRadicado,
+    ): RedirectResponse {
+        try {
+            $radicated = $generateMotoRadicado->execute(
+                $moto,
+                $this->advisor($request->user()),
+                (string) $request->attributes->get('request_id', ''),
+            );
+        } catch (CancellationMutationException $exception) {
+            return back()->withErrors($this->mutationErrors($exception));
+        }
+
+        return redirect()
+            ->route('advisor.moto.edit', $radicated)
+            ->with('status', 'Radicado Moto generado.');
+    }
+
+    /**
+     * @throws AuthorizationException
+     */
     public function store(
         StoreMotoCancellationRequest $request,
         StartMotoCancellationOtpAction $startMotoCancellationOtp,
@@ -182,6 +207,9 @@ final class MotoCancellationController
         return match ($exception->getMessage()) {
             'STALE_VERSION' => ['expected_version' => 'La solicitud fue modificada por otra operacion. Recarga e intenta de nuevo.'],
             'TERMINAL' => ['status' => 'La solicitud ya esta en estado terminal y no puede modificarse.'],
+            'MOTO_LIEN_REQUIRED' => ['radicado' => 'La radicacion manual solo aplica para Moto con prenda vigente.'],
+            'RADICADO_ALREADY_EXISTS' => ['radicado' => 'La solicitud ya tiene radicado.'],
+            'PENDING_RADICACION_REQUIRED' => ['status' => 'La solicitud no esta pendiente de radicacion.'],
             'CREDIT_OWNER_REQUIRED' => ['credit_owner_cedula' => 'Debe informar el dueno del credito cuando el titular no lo es.'],
             'ASSIGNED_ADVISOR_NOT_FOUND' => ['assigned_advisor_user_id' => 'El Advisor asignado no esta disponible.'],
             default => ['mutation' => 'No fue posible aplicar el cambio.'],

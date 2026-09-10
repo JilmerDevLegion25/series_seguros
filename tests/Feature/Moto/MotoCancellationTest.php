@@ -28,15 +28,29 @@ use App\Models\RadicadoSequence;
 use App\Models\Role;
 use App\Models\SmsAttempt;
 use App\Models\User;
+use App\Services\Clock\Clock;
 use App\Services\Sms\FakeSmsGateway;
+use App\Services\Sms\SmsGateway;
 use App\Services\Sms\SmsGatewayResult;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\RefreshPhaseDatabase;
 use Tests\TestCase;
 
 final class MotoCancellationTest extends TestCase
 {
-    use RefreshPhaseDatabase;
+    use RefreshPhaseDatabase {
+        setUp as refreshPhaseDatabaseSetUp;
+    }
+
+    protected function setUp(): void
+    {
+        $this->refreshPhaseDatabaseSetUp();
+
+        config()->set('sms.driver', 'fake');
+        $this->app->bind(SmsGateway::class, fn (): SmsGateway => new FakeSmsGateway(app(Clock::class)));
+        $this->withSession(['_token' => 'phase04-token']);
+    }
 
     public function test_public_moto_e2e_creates_only_after_valid_otp(): void
     {
@@ -54,6 +68,7 @@ final class MotoCancellationTest extends TestCase
         $this->assertSame(0, User::query()->count());
 
         $this->post(route('public.moto.complete'), [
+            '_token' => 'phase04-token',
             'challenge_reference' => $challenge->public_reference,
             'otp' => $otp,
             'owner_user_id' => 999,
@@ -119,6 +134,7 @@ final class MotoCancellationTest extends TestCase
         $invalid = OtpChallenge::query()->latest('id')->firstOrFail();
         $invalidOtp = $this->latestOtp();
         $this->post(route('public.moto.complete'), [
+            '_token' => 'phase04-token',
             'challenge_reference' => $invalid->public_reference,
             'otp' => $this->wrongOtp($invalidOtp),
         ])->assertSessionHasErrors(['otp']);
@@ -128,6 +144,7 @@ final class MotoCancellationTest extends TestCase
         $expiredOtp = $this->latestOtp();
         $expired->forceFill(['expires_at' => now()->subSecond()])->save();
         $this->post(route('public.moto.complete'), [
+            '_token' => 'phase04-token',
             'challenge_reference' => $expired->public_reference,
             'otp' => $expiredOtp,
         ])->assertSessionHasErrors(['otp']);
@@ -144,6 +161,7 @@ final class MotoCancellationTest extends TestCase
         app(VerifyAndConsumeOtpChallengeAction::class)->execute($consumed->public_reference, $consumedOtp, '127.0.0.20');
 
         $this->post(route('public.moto.complete'), [
+            '_token' => 'phase04-token',
             'challenge_reference' => $consumed->public_reference,
             'otp' => $consumedOtp,
         ])->assertSessionHasErrors(['otp']);
@@ -176,6 +194,7 @@ final class MotoCancellationTest extends TestCase
         $otp = $this->latestOtp();
 
         $this->post(route('public.moto.complete'), [
+            '_token' => 'phase04-token',
             'challenge_reference' => $challenge->public_reference,
             'otp' => $otp,
             'holder_name' => 'Browser Tamper',
@@ -205,6 +224,7 @@ final class MotoCancellationTest extends TestCase
         FakeSmsGateway::fakeNextResult(SmsGatewayResult::failed('PROVIDER_DOWN', 'Provider unavailable'));
 
         $this->post(route('public.moto.complete'), [
+            '_token' => 'phase04-token',
             'challenge_reference' => $challenge->public_reference,
             'otp' => $otp,
         ])->assertOk();
@@ -213,6 +233,41 @@ final class MotoCancellationTest extends TestCase
         $attempt = SmsAttempt::query()->firstOrFail();
         $this->assertSame(SmsAttemptStatus::FAILED, $attempt->status);
         $this->assertSame('PROVIDER_DOWN', $attempt->safe_error_code);
+    }
+
+    public function test_lien_moto_after_valid_otp_is_pending_without_radicado_or_radicado_sms(): void
+    {
+        $this->seedMotoSequence(350);
+
+        $this->post(route('public.moto.store'), $this->validPayload([
+            'property_lien_adeinco' => '1',
+        ]))->assertOk();
+
+        $challenge = OtpChallenge::query()->firstOrFail();
+        $otp = $this->latestOtp();
+        $this->assertCount(1, FakeSmsGateway::sentMessages());
+
+        $this->post(route('public.moto.complete'), [
+            '_token' => 'phase04-token',
+            'challenge_reference' => $challenge->public_reference,
+            'otp' => $otp,
+        ])->assertOk()
+            ->assertSee('Pendiente de radicacion')
+            ->assertSee('validación administrativa previa')
+            ->assertSee('Copia de la tarjeta de propiedad del vehículo')
+            ->assertDontSee('Radicado Moto')
+            ->assertDontSee('350');
+
+        $moto = MotoCancellation::query()->firstOrFail();
+
+        $this->assertNull($moto->radicado);
+        $this->assertSame(CancellationStatus::PENDIENTE_RADICACION, $moto->status);
+        $this->assertSame(1, $moto->version);
+        $this->assertSame(350, RadicadoSequence::query()->where('type', CancellationType::MOTO)->value('next_value'));
+        $this->assertSame(0, SmsAttempt::query()->where('purpose', SmsPurpose::RADICADO)->count());
+        $this->assertCount(1, FakeSmsGateway::sentMessages());
+        $this->assertSame(1, Activity::query()->where('type', ActivityType::CREATED)->count());
+        $this->assertSame(1, Audit::query()->where('event_type', AuditEventType::CANCELLATION_CREATED)->count());
     }
 
     public function test_advisor_requires_permission_and_still_needs_otp(): void
@@ -235,12 +290,14 @@ final class MotoCancellationTest extends TestCase
         $this->assertSame(0, MotoCancellation::query()->count());
 
         $this->post(route('advisor.moto.complete'), [
+            '_token' => 'phase04-token',
             'challenge_reference' => $challenge->public_reference,
             'otp' => $this->wrongOtp($otp),
         ])->assertSessionHasErrors(['otp']);
         $this->assertSame(0, MotoCancellation::query()->count());
 
         $this->post(route('advisor.moto.complete'), [
+            '_token' => 'phase04-token',
             'challenge_reference' => $challenge->public_reference,
             'otp' => $otp,
         ])->assertOk();
@@ -252,6 +309,84 @@ final class MotoCancellationTest extends TestCase
         $this->assertNotSame($advisor->id, $moto->owner_user_id);
     }
 
+    public function test_advisor_generates_radicado_for_pending_lien_moto_and_sends_sms_outside_transaction(): void
+    {
+        $this->seedMotoSequence(800);
+        $advisor = $this->makeAdvisor();
+        $client = $this->makeClient([
+            'identity' => '5555555555',
+            'username' => '5555555555',
+        ]);
+        $moto = $this->makePendingLienMoto($client, $advisor);
+        $this->grantAdvisor(PermissionKey::CANCELLATIONS_UPDATE);
+        $this->actingAsReady($advisor);
+        $observer = new class
+        {
+            /** @var list<int> */
+            public array $transactionLevels = [];
+        };
+
+        $this->app->bind(SmsGateway::class, fn (): SmsGateway => new class($observer) implements SmsGateway
+        {
+            public function __construct(private readonly object $observer) {}
+
+            public function send(string $destination, string $message, SmsPurpose $purpose): SmsGatewayResult
+            {
+                $this->observer->transactionLevels[] = DB::transactionLevel();
+
+                return SmsGatewayResult::sent('manual-radicado-ref');
+            }
+        });
+
+        $this->from(route('advisor.cancellations.index'))
+            ->post(route('advisor.moto.radicado.generate', $moto), [
+                '_token' => 'phase04-token',
+            ])
+            ->assertRedirect(route('advisor.moto.edit', $moto, absolute: false));
+
+        $moto->refresh();
+        $attempt = SmsAttempt::query()->where('moto_cancellation_id', $moto->id)->firstOrFail();
+
+        $this->assertSame(800, $moto->radicado);
+        $this->assertSame(CancellationStatus::EN_GESTION, $moto->status);
+        $this->assertSame(2, $moto->version);
+        $this->assertSame(801, RadicadoSequence::query()->where('type', CancellationType::MOTO)->value('next_value'));
+        $this->assertSame(SmsAttemptStatus::SENT, $attempt->status);
+        $this->assertSame('manual-radicado-ref', $attempt->provider_reference);
+        $this->assertSame([0], $observer->transactionLevels);
+        $this->assertSame(1, Activity::query()->where('type', ActivityType::RADICADO_GENERATED)->where('moto_cancellation_id', $moto->id)->count());
+        $this->assertSame(1, Audit::query()->where('event_type', AuditEventType::RADICADO_GENERATED)->where('moto_cancellation_id', $moto->id)->count());
+    }
+
+    public function test_manual_radicado_sms_failure_does_not_rollback_radicacion(): void
+    {
+        $this->seedMotoSequence(850);
+        $advisor = $this->makeAdvisor();
+        $client = $this->makeClient([
+            'identity' => '6666666666',
+            'username' => '6666666666',
+        ]);
+        $moto = $this->makePendingLienMoto($client, $advisor);
+        $this->grantAdvisor(PermissionKey::CANCELLATIONS_UPDATE);
+        $this->actingAsReady($advisor);
+
+        FakeSmsGateway::fakeNextResult(SmsGatewayResult::failed('PROVIDER_DOWN', 'Provider unavailable'));
+
+        $this->post(route('advisor.moto.radicado.generate', $moto), [
+            '_token' => 'phase04-token',
+        ])
+            ->assertRedirect(route('advisor.moto.edit', $moto, absolute: false));
+
+        $moto->refresh();
+        $attempt = SmsAttempt::query()->where('moto_cancellation_id', $moto->id)->firstOrFail();
+
+        $this->assertSame(850, $moto->radicado);
+        $this->assertSame(CancellationStatus::EN_GESTION, $moto->status);
+        $this->assertSame(2, $moto->version);
+        $this->assertSame(SmsAttemptStatus::FAILED, $attempt->status);
+        $this->assertSame('PROVIDER_DOWN', $attempt->safe_error_code);
+    }
+
     public function test_double_completion_is_idempotent_and_does_not_duplicate_sms(): void
     {
         $this->seedMotoSequence(500);
@@ -261,11 +396,13 @@ final class MotoCancellationTest extends TestCase
         $otp = $this->latestOtp();
 
         $this->post(route('public.moto.complete'), [
+            '_token' => 'phase04-token',
             'challenge_reference' => $challenge->public_reference,
             'otp' => $otp,
         ])->assertOk();
 
         $this->post(route('public.moto.complete'), [
+            '_token' => 'phase04-token',
             'challenge_reference' => $challenge->public_reference,
             'otp' => $otp,
         ])->assertOk()->assertSee('ya habia sido completada');
@@ -284,8 +421,9 @@ final class MotoCancellationTest extends TestCase
     {
         return array_merge([
             'holder_name' => 'Client Moto',
+            '_token' => 'phase04-token',
             'holder_cedula' => '1234567890',
-            'property_lien_adeinco' => '1',
+            'property_lien_adeinco' => '0',
             'plate' => 'ABC123',
             'holder_phone' => '3001234567',
             'holder_email' => 'client@example.test',
@@ -389,6 +527,52 @@ final class MotoCancellationTest extends TestCase
         ]);
     }
 
+    private function makePendingLienMoto(User $owner, User $creator): MotoCancellation
+    {
+        return MotoCancellation::query()->create([
+            'otp_challenge_id' => $this->makeConsumedChallenge()->id,
+            'radicado' => null,
+            'owner_user_id' => $owner->id,
+            'created_by_user_id' => $creator->id,
+            'assigned_advisor_user_id' => $creator->id,
+            'origin' => CancellationOrigin::ADVISOR,
+            'status' => CancellationStatus::PENDIENTE_RADICACION,
+            'version' => 1,
+            'holder_name' => $owner->name,
+            'holder_cedula' => (string) $owner->identity,
+            'property_lien_adeinco' => true,
+            'plate' => 'ABC123',
+            'holder_phone' => (string) $owner->phone,
+            'holder_email' => (string) $owner->email,
+            'cancellation_reason' => MotoCancellationReason::REDUCIR_GASTOS,
+            'cancellation_information_source' => MotoInformationSource::ASESOR_COMERCIAL,
+            'is_credit_holder' => false,
+            'credit_owner_name' => 'Credit Owner',
+            'credit_owner_cedula' => '9876543210',
+            'ownership_declaration_accepted' => true,
+            'data_processing_accepted' => true,
+        ]);
+    }
+
+    private function makeConsumedChallenge(): OtpChallenge
+    {
+        return OtpChallenge::query()->create([
+            'public_reference' => 'phase126-'.bin2hex(random_bytes(8)),
+            'purpose' => OtpPurpose::CREATE_MOTO,
+            'target_user_id' => null,
+            'destination_snapshot' => '+573001234567',
+            'encrypted_payload' => null,
+            'otp_mac' => hash('sha256', 'phase126'),
+            'failed_attempts' => 0,
+            'emission_count' => 1,
+            'last_emitted_at' => now(),
+            'expires_at' => now()->addMinutes(5),
+            'consumed_at' => now(),
+            'invalidated_at' => null,
+            'invalidation_reason' => null,
+        ]);
+    }
+
     private function grantAdvisor(PermissionKey $permissionKey): void
     {
         app(GrantRolePermissionAction::class)->execute(
@@ -403,6 +587,7 @@ final class MotoCancellationTest extends TestCase
             ->withSession([
                 'auth_started_at' => now()->timestamp,
                 'auth_last_activity_at' => now()->timestamp,
+                '_token' => 'phase04-token',
             ]);
     }
 }

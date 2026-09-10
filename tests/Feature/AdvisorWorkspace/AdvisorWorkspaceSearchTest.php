@@ -264,6 +264,54 @@ final class AdvisorWorkspaceSearchTest extends TestCase
             ->assertDontSee('Exportar');
     }
 
+    public function test_pending_moto_without_radicado_shows_generate_radicado_action(): void
+    {
+        $advisor = $this->makeAdvisor('advisor-pending', 'Advisor Pending');
+        $client = $this->makeClient('1000000098', 'Client Pending');
+        $this->makeMoto($client, $advisor, [
+            'holder_name' => 'Pending Lien Moto',
+            'radicado' => null,
+            'status' => CancellationStatus::PENDIENTE_RADICACION,
+            'property_lien_adeinco' => true,
+        ]);
+        $this->grant(RoleCode::ADVISOR, PermissionKey::CANCELLATIONS_VIEW);
+        $this->actingAsReady($advisor);
+
+        $this->get(route('advisor.cancellations.index'))
+            ->assertOk()
+            ->assertSee('Pending Lien Moto')
+            ->assertSee('Pendiente de radicacion')
+            ->assertDontSee('Generar Radicado');
+
+        $this->grant(RoleCode::ADVISOR, PermissionKey::CANCELLATIONS_UPDATE);
+
+        $this->get(route('advisor.cancellations.index'))
+            ->assertOk()
+            ->assertSee('Pending Lien Moto')
+            ->assertSee('Generar Radicado');
+    }
+
+    public function test_radicado_sms_retry_action_is_hidden_without_radicado(): void
+    {
+        $advisor = $this->makeAdvisor('advisor-no-rad', 'Advisor No Radicado');
+        $client = $this->makeClient('1000000097', 'Client No Radicado');
+        $moto = $this->makeMoto($client, $advisor, [
+            'holder_name' => 'No Radicado Retry',
+            'radicado' => null,
+            'status' => CancellationStatus::PENDIENTE_RADICACION,
+            'property_lien_adeinco' => true,
+        ]);
+        $this->createRadicadoSmsAttempt($moto, SmsAttemptStatus::FAILED);
+        $this->grant(RoleCode::ADVISOR, PermissionKey::CANCELLATIONS_VIEW);
+        $this->grant(RoleCode::ADVISOR, PermissionKey::RADICADO_SMS_RETRY);
+        $this->actingAsReady($advisor);
+
+        $this->get(route('advisor.cancellations.index'))
+            ->assertOk()
+            ->assertSee('No Radicado Retry')
+            ->assertDontSee('Reintentar SMS');
+    }
+
     public function test_workspace_query_count_stays_reasonable_for_many_rows(): void
     {
         $advisor = $this->makeAdvisor('advisor-n1', 'Advisor N1');

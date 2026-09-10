@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 /**
  * @property int $id
  * @property int $otp_challenge_id
- * @property int $radicado
+ * @property int|null $radicado
  * @property int $owner_user_id
  * @property int $created_by_user_id
  * @property int|null $assigned_advisor_user_id
