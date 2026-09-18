@@ -56,7 +56,8 @@
                                 ? route('client.cancellations.moto.show', $cancellation->id)
                                 : route('client.cancellations.credit.show', $cancellation->id);
                             $isComplete = $cancellation->status === \App\Enums\CancellationStatus::RESPUESTA_OBTENIDA->value;
-                            $progressPercent = $isComplete ? 100 : 50;
+                            $isPendingRadicacion = $cancellation->status === \App\Enums\CancellationStatus::PENDIENTE_RADICACION->value;
+                            $progressPercent = $isComplete ? 100 : ($isPendingRadicacion ? 25 : 50);
                         @endphp
                         <tr>
                             <td>
@@ -97,7 +98,8 @@
                             ? route('client.cancellations.moto.show', $cancellation->id)
                             : route('client.cancellations.credit.show', $cancellation->id);
                         $isComplete = $cancellation->status === \App\Enums\CancellationStatus::RESPUESTA_OBTENIDA->value;
-                        $progressPercent = $isComplete ? 100 : 50;
+                        $isPendingRadicacion = $cancellation->status === \App\Enums\CancellationStatus::PENDIENTE_RADICACION->value;
+                        $progressPercent = $isComplete ? 100 : ($isPendingRadicacion ? 25 : 50);
                     @endphp
                     <article class="mobile-row-card">
                         <strong>{{ $isMoto ? 'Moto' : 'Credit' }} {{ $cancellation->radicado }}</strong>

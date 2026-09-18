@@ -342,7 +342,7 @@ final class MotoCancellationTest extends TestCase
             ->post(route('advisor.moto.radicado.generate', $moto), [
                 '_token' => 'phase04-token',
             ])
-            ->assertRedirect(route('advisor.moto.edit', $moto, absolute: false));
+            ->assertRedirect(route('advisor.cancellations.index', absolute: false));
 
         $moto->refresh();
         $attempt = SmsAttempt::query()->where('moto_cancellation_id', $moto->id)->firstOrFail();
@@ -372,10 +372,11 @@ final class MotoCancellationTest extends TestCase
 
         FakeSmsGateway::fakeNextResult(SmsGatewayResult::failed('PROVIDER_DOWN', 'Provider unavailable'));
 
-        $this->post(route('advisor.moto.radicado.generate', $moto), [
-            '_token' => 'phase04-token',
-        ])
-            ->assertRedirect(route('advisor.moto.edit', $moto, absolute: false));
+        $this->from(route('advisor.cancellations.index'))
+            ->post(route('advisor.moto.radicado.generate', $moto), [
+                '_token' => 'phase04-token',
+            ])
+            ->assertRedirect(route('advisor.cancellations.index', absolute: false));
 
         $moto->refresh();
         $attempt = SmsAttempt::query()->where('moto_cancellation_id', $moto->id)->firstOrFail();

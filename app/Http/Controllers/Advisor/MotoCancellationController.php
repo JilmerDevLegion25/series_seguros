@@ -126,9 +126,7 @@ final class MotoCancellationController
             return back()->withErrors($this->mutationErrors($exception));
         }
 
-        return redirect()
-            ->route('advisor.moto.edit', $radicated)
-            ->with('status', 'Radicado Moto generado.');
+        return back()->with('status', 'Radicado Moto generado: '.$radicated->radicado.'.');
     }
 
     /**

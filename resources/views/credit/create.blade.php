@@ -73,7 +73,7 @@
         <x-ui.form-section title="Declaraciones">
             <div class="grid">
                 <x-ui.checkbox name="credit_holder_declaration_accepted" label="Declaro que soy el titula del credito, unica persona con derecho a solicitar la cancelacion de los seguros referentes" :checked="(bool) old('credit_holder_declaration_accepted')" required />
-                <x-ui.checkbox name="data_processing_accepted" label="He leido y acepto el tratamiento de datos personales y politica de datos de la empresa Corredores de seguros del valle S.A." :checked="(bool) old('data_processing_accepted')" required />
+                <x-ui.checkbox name="data_processing_accepted" label="He leido y acepto el tratamiento de datos personales y politica de datos de la empresa Cancelacion Series" :checked="(bool) old('data_processing_accepted')" required />
             </div>
         </x-ui.form-section>
 

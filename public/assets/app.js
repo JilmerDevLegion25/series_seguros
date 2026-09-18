@@ -231,6 +231,8 @@
     var modalMessage = document.querySelector('[data-confirm-message]');
     var modalCancel = document.querySelector('[data-confirm-cancel]');
     var modalAccept = document.querySelector('[data-confirm-accept]');
+    var modalTitle = modal ? modal.querySelector('#confirm-title') : null;
+    var modalProgress = document.querySelector('[data-confirm-progress]');
     var modalBackdrop = document.querySelector('[data-confirm-backdrop]');
     var publicCancellationModal = document.querySelector('[data-public-cancellation-modal]');
     var publicCancellationBackdrop = document.querySelector('[data-public-cancellation-backdrop]');
@@ -279,11 +281,29 @@
     }
 
     function closeModal() {
+        if (modal && modal.classList.contains('is-submitting')) {
+            return;
+        }
+
         if (modal) {
             modal.hidden = true;
+            modal.classList.remove('is-submitting');
         }
         if (modalBackdrop) {
             modalBackdrop.hidden = true;
+        }
+        if (modalProgress) {
+            modalProgress.hidden = true;
+        }
+        if (modalCancel) {
+            modalCancel.hidden = false;
+            modalCancel.disabled = false;
+        }
+        if (modalAccept) {
+            modalAccept.disabled = false;
+            modalAccept.removeAttribute('aria-busy');
+            modalAccept.innerHTML = modalAccept.dataset.originalHtml || 'Continuar';
+            delete modalAccept.dataset.originalHtml;
         }
         pendingConfirmForm = null;
     }
@@ -298,7 +318,7 @@
         submitter.dataset.originalText = submitter.textContent;
         submitter.disabled = true;
         submitter.setAttribute('aria-busy', 'true');
-        submitter.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>Procesando</span>';
+        submitter.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>' + (form.getAttribute('data-loading-label') || 'Procesando') + '</span>';
     }
 
     function resetLoading(form) {
@@ -330,9 +350,26 @@
         if (message && modal && !form.dataset.confirmed) {
             event.preventDefault();
             pendingConfirmForm = form;
+            if (modalTitle) {
+                modalTitle.textContent = 'Confirmar accion';
+            }
             if (modalMessage) {
                 modalMessage.textContent = message;
             }
+            if (modalProgress) {
+                modalProgress.hidden = true;
+            }
+            if (modalAccept) {
+                modalAccept.disabled = false;
+                modalAccept.removeAttribute('aria-busy');
+                modalAccept.innerHTML = modalAccept.dataset.originalHtml || 'Continuar';
+                delete modalAccept.dataset.originalHtml;
+            }
+            if (modalCancel) {
+                modalCancel.hidden = false;
+                modalCancel.disabled = false;
+            }
+            modal.classList.remove('is-submitting');
             modal.hidden = false;
             if (modalBackdrop) {
                 modalBackdrop.hidden = false;
@@ -376,7 +413,30 @@
                 closeModal();
                 return;
             }
+            if (modalAccept.disabled) {
+                return;
+            }
             pendingConfirmForm.dataset.confirmed = 'true';
+            if (modal) {
+                modal.classList.add('is-submitting');
+            }
+            if (modalTitle) {
+                modalTitle.textContent = pendingConfirmForm.getAttribute('data-confirm-loading-title') || 'Procesando';
+            }
+            if (modalMessage) {
+                modalMessage.textContent = pendingConfirmForm.getAttribute('data-confirm-loading-message') || 'Estamos procesando tu solicitud.';
+            }
+            if (modalProgress) {
+                modalProgress.hidden = false;
+            }
+            if (modalCancel) {
+                modalCancel.hidden = true;
+                modalCancel.disabled = true;
+            }
+            modalAccept.dataset.originalHtml = modalAccept.innerHTML;
+            modalAccept.disabled = true;
+            modalAccept.setAttribute('aria-busy', 'true');
+            modalAccept.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>Generando</span>';
             if (pendingConfirmForm.matches('[data-account-reset-loading]') && accountResetOverlay) {
                 accountResetOverlay.hidden = false;
             }

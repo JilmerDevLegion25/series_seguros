@@ -344,7 +344,7 @@
                                 <td><x-ui.status-badge :status="$row->status" /></td>
                                 <td>
                                     <span class="workspace-progress {{ $isComplete ? 'is-complete' : 'is-mid' }}" aria-label="Progreso {{ $progressPercent }}%">
-                                        <span class="workspace-progress-track" aria-hidden="true"><span></span></span>
+                                        <span class="workspace-progress-track" aria-hidden="true"><span style="width: {{ $progressPercent }}%"></span></span>
                                         <strong>{{ $progressPercent }}%</strong>
                                     </span>
                                 </td>
@@ -357,7 +357,7 @@
                                             </a>
                                         @endif
                                         @if ($canGenerateRadicado)
-                                            <form method="post" action="{{ $generateRadicadoRoute }}" data-loading data-confirm="Confirma que el proceso de validacion de la limitacion a la propiedad ya fue realizado.">
+                                            <form method="post" action="{{ $generateRadicadoRoute }}" data-loading data-loading-label="Generando" data-confirm="Confirma que el proceso de validacion de la limitacion a la propiedad ya fue realizado." data-confirm-loading-title="Generando radicado" data-confirm-loading-message="Estamos asignando el numero de radicado y registrando el envio SMS. Esto tomara solo un momento.">
                                                 @csrf
                                                 <button class="btn btn-outline btn-sm" type="submit">Generar Radicado</button>
                                             </form>
@@ -415,7 +415,7 @@
                         </div>
                         <x-ui.status-badge :status="$row->status" />
                         <span class="workspace-progress {{ $isComplete ? 'is-complete' : 'is-mid' }}" aria-label="Progreso {{ $progressPercent }}%">
-                            <span class="workspace-progress-track" aria-hidden="true"><span></span></span>
+                            <span class="workspace-progress-track" aria-hidden="true"><span style="width: {{ $progressPercent }}%"></span></span>
                             <strong>{{ $progressPercent }}%</strong>
                         </span>
                         <div class="row-actions workspace-row-actions">
@@ -425,7 +425,7 @@
                                 </a>
                             @endif
                             @if ($canGenerateRadicado)
-                                <form method="post" action="{{ $generateRadicadoRoute }}" data-loading data-confirm="Confirma que el proceso de validacion de la limitacion a la propiedad ya fue realizado.">
+                                <form method="post" action="{{ $generateRadicadoRoute }}" data-loading data-loading-label="Generando" data-confirm="Confirma que el proceso de validacion de la limitacion a la propiedad ya fue realizado." data-confirm-loading-title="Generando radicado" data-confirm-loading-message="Estamos asignando el numero de radicado y registrando el envio SMS. Esto tomara solo un momento.">
                                     @csrf
                                     <button class="btn btn-outline btn-sm" type="submit">Generar Radicado</button>
                                 </form>

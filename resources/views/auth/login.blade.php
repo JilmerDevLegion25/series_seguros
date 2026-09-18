@@ -21,7 +21,10 @@
 
             <div class="portal-request-grid">
                 <a class="portal-request-option portal-request-option-moto" href="{{ route('public.moto.create') }}" data-public-cancellation-trigger>
-                    <span class="portal-option-icon" aria-hidden="true"><x-ui.icon name="moto" /></span>
+                    <span class="portal-option-icon portal-option-icon-moto" aria-hidden="true">
+                        <x-ui.icon name="moto" />
+                        <span class="portal-option-motion portal-option-motion-moto"></span>
+                    </span>
                     <span class="portal-option-content">
                         <span class="portal-option-title">Seguro para moto</span>
                         <span class="portal-option-copy">Inicia la cancelacion de tu poliza.</span>
@@ -30,7 +33,10 @@
                 </a>
 
                 <a class="portal-request-option portal-request-option-credit" href="{{ route('public.credit.create') }}" data-public-cancellation-trigger>
-                    <span class="portal-option-icon" aria-hidden="true"><x-ui.icon name="credit" /></span>
+                    <span class="portal-option-icon portal-option-icon-credit" aria-hidden="true">
+                        <x-ui.icon name="credit" />
+                        <span class="portal-option-motion portal-option-motion-credit"></span>
+                    </span>
                     <span class="portal-option-content">
                         <span class="portal-option-title">Seguro de credito</span>
                         <span class="portal-option-copy">Radica una solicitud asociada a tu credito.</span>
